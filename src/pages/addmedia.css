@@ -1,0 +1,154 @@
+/* Add Media Page (match reference screenshot) */
+
+.add-media-page {
+  min-height: 100vh;
+  background: #0b0b0b;
+  color: #e8e8e8;
+  padding: 24px 0;
+}
+
+.add-media-container {
+  width: min(900px, 92vw);
+  margin: 0 auto;
+  background: #1a1a1a;
+  border: 1px solid #2b2b2b;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+/* Header */
+.add-media-header {
+  text-align: center;
+  padding: 28px 18px 22px;
+  border-bottom: 1px solid #2b2b2b;
+  background: #141414;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: #f2f2f2;
+}
+
+.header-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #9a9a9a;
+}
+
+/* Form */
+.add-media-form {
+  padding: 26px 26px 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 26px;
+}
+
+.form-group-full {
+  margin-top: 20px;
+}
+
+.form-label {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #8b8b8b;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #3a3a3a;
+  background: #242424;
+  color: #e8e8e8;
+  outline: none;
+}
+
+.form-textarea {
+  height: 110px;
+  resize: none;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #6f6f6f;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: #4a4a4a;
+}
+
+.form-input:disabled,
+.form-textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.form-input option {
+  background: #242424;
+  color: #e8e8e8;
+}
+
+/* Submit */
+.form-submit {
+  margin-top: 18px;
+}
+
+.submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 22px;
+  background: #2f2f2f;
+  border: 1px solid #4a4a4a;
+  color: #e8e8e8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #353535;
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(232, 232, 232, 0.35);
+  border-top-color: rgba(232, 232, 232, 0.9);
+  border-radius: 50%;
+  animation: addMediaSpin 1s linear infinite;
+}
+
+@keyframes addMediaSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .add-media-form {
+    padding: 20px;
+  }
+}
