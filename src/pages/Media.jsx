@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import './MediaDetail.css';
 import { jwtDecode } from "jwt-decode";
 import NavBar from './navbar';
@@ -16,6 +16,13 @@ function MediaDetail() {
   const [watchlistLoading, setWatchlistLoading] = useState(false);
   const userId = localStorage.getItem('userId');
   const userReviewed = reviews.find(r => r.user && (r.user._id === userId || r.user.id === userId));
+
+  const getReviewUserId = (reviewUser) => reviewUser?._id || reviewUser?.id;
+  const getReviewUserProfilePath = (reviewUser) => {
+    const reviewUserId = getReviewUserId(reviewUser);
+    if (!reviewUserId) return null;
+    return String(reviewUserId) === String(userId) ? '/profile' : `/users/${reviewUserId}`;
+  };
   
   const checkWatchlistStatus = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -391,10 +398,16 @@ function MediaDetail() {
                   <div className="review-header">
                     <div className="review-user-info">
                       <div className="user-avatar">
-                        <span>{review.user.username.charAt(0).toUpperCase()}</span>
+                        <span>{(review.user?.username || '?').charAt(0).toUpperCase()}</span>
                       </div>
                       <div className="user-details">
-                        <div className="username">{review.user.username}</div>
+                        {getReviewUserProfilePath(review.user) ? (
+                          <Link to={getReviewUserProfilePath(review.user)} className="username text-decoration-none">
+                            {review.user?.username || 'Unknown user'}
+                          </Link>
+                        ) : (
+                          <div className="username">{review.user?.username || 'Unknown user'}</div>
+                        )}
                         <div className="review-meta">
                           <span className="rating-badge">
                             ⭐ {review.rating}/10

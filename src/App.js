@@ -7,6 +7,7 @@ import Top100Page from './pages/Top100';
 import AddMediaForm from './pages/addmedia';
 import SearchResults from './pages/SearchResults';
 import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile.jsx';
 import WatchlistPage from './pages/Watchlist';
 import UserReviews from './pages/UserReviews';
 import UserDiscussions from './pages/UserDiscussions';
@@ -30,8 +31,11 @@ function App() {
             <Route path="/profile/reviews" element={<UserReviews />} />
             <Route path="/profile/discussions" element={<UserDiscussions />} />
             <Route path="/admin/requests" element={<AdminRequests />} />
-            <Route path="/users/:id" element={<Profile />} />
+            <Route path="/users/:id" element={<UserProfile />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
+            <Route path="/users/:id/watchlist" element={<WatchlistPage />} />
+            <Route path="/users/:id/reviews" element={<UserReviews />} />
+            <Route path="/users/:id/discussions" element={<UserDiscussions />} />
             <Route path="/categories/:categoryKey" element={<CategoryPage />} />
           </Routes>
         </header>

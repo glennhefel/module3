@@ -213,4 +213,73 @@ router.get('/me/discussions', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /users/:id/watchlist - Get public watchlist of a user
+router.get('/:id/watchlist', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const wl = await Watchlist.findOne({ user: id }).populate('items.media', 'title poster genre media release_date');
+    if (!wl) return res.json([]);
+
+    const mediaIds = wl.items.map(i => i.media?._id).filter(Boolean);
+    const userRatings = await Review.find({ user: id, media: { $in: mediaIds } }).select('media rating');
+
+    const ratingMap = {};
+    userRatings.forEach((rating) => {
+      ratingMap[rating.media.toString()] = rating.rating;
+    });
+
+    return res.json(
+      wl.items.map((i) => ({
+        media: i.media,
+        addedAt: i.addedAt,
+        status: i.status || 'plan_to_watch',
+        userRating: i.media?._id ? ratingMap[i.media._id.toString()] || null : null,
+      }))
+    );
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+});
+
+// GET /users/:id/reviews - Get reviews of a user
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reviews = await Review.find({ user: id })
+      .populate('media', 'title poster genre release_date')
+      .sort({ createdAt: -1 });
+
+    return res.json(reviews);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+});
+
+// GET /users/:id/discussions - Get discussions of a user
+router.get('/:id/discussions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const discussions = await Discussion.find({ user: id })
+      .populate('media', 'title poster genre release_date')
+      .sort({ createdAt: -1 });
+
+    return res.json(discussions);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+});
+
+// GET /users/:id - Get a public user profile by id
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    return res.json({ user });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+});
+
 export default router;

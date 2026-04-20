@@ -1,23 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import NavBar from './navbar';
 import './Profile.css';
 
+function safeDecodeToken(token) {
+  if (!token) return null;
+  try {
+    const part = token.split('.')[1];
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 export default function UserDiscussions() {
+  const { id } = useParams();
   const [discussions, setDiscussions] = useState([]);
+  const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem('token');
+  const decoded = safeDecodeToken(token);
+  const currentUserId = decoded?.id || decoded?._id || null;
+  const isOtherUserProfile = Boolean(id);
 
   useEffect(() => {
     const fetchUserDiscussions = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!token && !isOtherUserProfile) {
         setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch('http://localhost:5000/users/me/discussions', {
-          headers: { Authorization: `Bearer ${token}` }
+        const endpoint = isOtherUserProfile
+          ? `http://localhost:5000/users/${id}/discussions`
+          : 'http://localhost:5000/users/me/discussions';
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        const res = await fetch(endpoint, {
+          headers
         });
 
         if (res.ok) {
@@ -32,7 +53,26 @@ export default function UserDiscussions() {
     };
 
     fetchUserDiscussions();
-  }, []);
+  }, [id, isOtherUserProfile, token]);
+
+  useEffect(() => {
+    const fetchProfileUser = async () => {
+      if (!isOtherUserProfile) return;
+      try {
+        const res = await fetch(`http://localhost:5000/users/${id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setProfileUser(data.user || null);
+      } catch {
+        setProfileUser(null);
+      }
+    };
+    fetchProfileUser();
+  }, [id, isOtherUserProfile]);
+
+  if (isOtherUserProfile && currentUserId && String(currentUserId) === String(id)) {
+    return <Navigate to="/profile/discussions" replace />;
+  }
 
   if (loading) {
     return (
@@ -53,8 +93,8 @@ export default function UserDiscussions() {
       <div className="homepage-dark" style={{ minHeight: '100vh' }}>
         <div className="container py-4">
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>Discussion History</h2>
-            <Link to="/profile" className="btn btn-outline-secondary btn-sm">
+            <h2>{isOtherUserProfile ? `${profileUser?.username || 'User'}'s Discussion History` : 'Discussion History'}</h2>
+            <Link to={isOtherUserProfile ? `/users/${id}` : '/profile'} className="btn btn-outline-secondary btn-sm">
               ← Back to Profile
             </Link>
           </div>

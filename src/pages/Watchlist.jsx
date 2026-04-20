@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import NavBar from './navbar';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import './Profile.css';
 
 function safeDecodeToken(token) {
@@ -15,36 +15,65 @@ function safeDecodeToken(token) {
 }
 
 export default function WatchlistPage() {
+  const { id } = useParams();
   const [items, setItems] = useState([]);
+  const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem('token');
+  const decoded = safeDecodeToken(token);
+  const currentUserId = decoded?.id || decoded?._id || null;
+  const isOtherUserProfile = Boolean(id);
 
   const fetchWatchlist = useCallback(async () => {
     setLoading(true);
-    if (!token) {
+    if (!token && !isOtherUserProfile) {
       setItems([]);
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch('http://localhost:5000/users/me/watchlist', {
-        headers: { Authorization: `Bearer ${token}` },
+      const endpoint = isOtherUserProfile
+        ? `http://localhost:5000/users/${id}/watchlist`
+        : 'http://localhost:5000/users/me/watchlist';
+
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(endpoint, {
+        headers,
       });
       if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json().catch(() => []);
       
-      // Keep the full items (media + status + addedAt + userRating)
+      
       const list = Array.isArray(data) ? data : [];
       setItems(list);
     } catch (err) {
       console.error('Error fetching watchlist:', err);
-      const decoded = safeDecodeToken(token);
-      setItems(decoded?.watchlist || []);
+      if (!isOtherUserProfile) {
+        const fallback = safeDecodeToken(token);
+        setItems(fallback?.watchlist || []);
+      } else {
+        setItems([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isOtherUserProfile, id]);
+
+  useEffect(() => {
+    const fetchProfileUser = async () => {
+      if (!isOtherUserProfile) return;
+      try {
+        const res = await fetch(`http://localhost:5000/users/${id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setProfileUser(data.user || null);
+      } catch {
+        setProfileUser(null);
+      }
+    };
+    fetchProfileUser();
+  }, [id, isOtherUserProfile]);
 
   const updateStatus = async (mediaId, newStatus) => {
     if (!token) {
@@ -110,14 +139,22 @@ export default function WatchlistPage() {
     fetchWatchlist();
   }, [fetchWatchlist]);
 
+  if (isOtherUserProfile && currentUserId && String(currentUserId) === String(id)) {
+    return <Navigate to="/watchlist" replace />;
+  }
+
   return (
     <>
       <NavBar />
       <div className="homepage-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div className="container py-4" style={{ flex: 1, maxWidth: '900px' }}>
           <div className="watchlist-header mb-4">
-            <h2 className="mb-1">My Watchlist</h2>
-            <p className="text-muted">Manage your saved media collection</p>
+            <h2 className="mb-1">
+              {isOtherUserProfile ? `${profileUser?.username || 'User'}'s Watchlist` : 'My Watchlist'}
+            </h2>
+            <p className="text-muted">
+              {isOtherUserProfile ? 'Viewing saved media collection' : 'Manage your saved media collection'}
+            </p>
           </div>
 
           {loading ? (
@@ -127,7 +164,7 @@ export default function WatchlistPage() {
           ) : items.length === 0 ? (
             <div className="empty-watchlist">
               <div className="empty-icon">📱</div>
-              <h4>Your watchlist is empty</h4>
+              <h4 className="mb-1"> {isOtherUserProfile ? `${profileUser?.username || 'User'}'s Watchlist is empty` : 'Your Watchlist is empty'}</h4>
               <p className="text-muted">Start adding movies and TV shows to keep track of what you want to watch!</p>
               <Link to="/home" className="btn btn-primary">Browse Media</Link>
             </div>
@@ -167,6 +204,7 @@ export default function WatchlistPage() {
                           value={status}
                           onChange={(e) => updateStatus(mediaId, e.target.value)}
                           className="status-dropdown"
+                          disabled={isOtherUserProfile}
                         >
                           <option value="plan_to_watch">Plan to Watch</option>
                           <option value="watching">Watching</option>
@@ -196,6 +234,7 @@ export default function WatchlistPage() {
                         onClick={() => removeFromWatchlist(mediaId)} 
                         className="btn-action remove"
                         title="Remove from Watchlist"
+                        disabled={isOtherUserProfile}
                       >
                         Remove
                       </button>
