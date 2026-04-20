@@ -14,20 +14,14 @@ import { isAdmin } from '../middleware/isAdmin.js';
 const router = express.Router();
 
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-
 
 // Get all media
 router.get('/', async (req, res) => {
   try {
-    const rawGenre = (req.query.genre || '').trim();
+    const Genre = (req.query.genre || '').trim();
     const filter = {};
-    if (rawGenre) {
-      // Case-insensitive exact match on genre 
-      filter.genre = { $regex: `^${escapeRegExp(rawGenre)}$`, $options: 'i' };
+    if (Genre) {
+      filter.genre = Genre;
     }
 
     const mediaList = await Media.find(filter);
