@@ -5,6 +5,25 @@ import { jwtDecode } from "jwt-decode";
 import NavBar from './navbar';
 import Discussion from '../components/Discussion';
 
+function extractYouTubeVideoId(url = '') {
+  const value = String(url || '').trim();
+  if (!value) return '';
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?(?:.*&)?v=)([^&]+)/i,
+    /(?:youtu\.be\/)([^?&/]+)/i,
+    /(?:youtube\.com\/embed\/)([^?&/]+)/i,
+    /(?:youtube\.com\/shorts\/)([^?&/]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return '';
+}
+
 function MediaDetail() {
   const { id } = useParams();
   const [media, setMedia] = useState(null);
@@ -278,6 +297,8 @@ function MediaDetail() {
     ? media.average_rating.toFixed(1)
     : 'N/A';
   const reviewCount = typeof media.total_votes === 'number' ? media.total_votes : reviews.length;
+  const trailerVideoId = extractYouTubeVideoId(media?.trailerUrl);
+  const embedOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
     <>
@@ -349,6 +370,22 @@ function MediaDetail() {
                 <h4>Synopsis</h4>
                 <p>{media.description}</p>
               </div>
+
+              {trailerVideoId ? (
+                <div className="movie-trailer-section">
+                  <h4>Trailer</h4>
+                  <div className="movie-trailer-frame-wrap">
+                    <iframe
+                      title={`${media.title} trailer`}
+                      className="movie-trailer-frame"
+                      src={`https://www.youtube.com/embed/${trailerVideoId}?enablejsapi=1&rel=0&modestbranding=1&origin=${encodeURIComponent(embedOrigin)}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="movie-action-rail">
@@ -614,6 +651,7 @@ function MediaDetail() {
                   genre: e.target.genre.value,
                   description: e.target.description.value,
                   poster: e.target.poster.value,
+                  trailerUrl: e.target.trailerUrl.value,
                 };
                 await handleEdit(formData);
               }}>
@@ -691,7 +729,21 @@ function MediaDetail() {
                   </div>
                 </div>
 
-               
+                <div className="form-group">
+                  <label className="form-label">
+                    <span className="label-icon"></span>
+                    Trailer URL (YouTube)
+                  </label>
+                  <input
+                    name="trailerUrl"
+                    type="url"
+                    defaultValue={media.trailerUrl || ''}
+                    className="form-control"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+
+                
                 <div className="form-group">
                   <label className="form-label">
                     <span className="label-icon"></span>

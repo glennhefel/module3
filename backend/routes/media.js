@@ -13,6 +13,35 @@ import { isAdmin } from '../middleware/isAdmin.js';
 
 const router = express.Router();
 
+function extractYouTubeVideoId(value = '') {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?(?:.*&)?v=)([^&]+)/i,
+    /(?:youtu\.be\/)([^?&/]+)/i,
+    /(?:youtube\.com\/embed\/)([^?&/]+)/i,
+    /(?:youtube\.com\/shorts\/)([^?&/]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match?.[1]) return match[1];
+  }
+
+  return '';
+}
+
+function normalizeTrailerUrl(value = '') {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  const videoId = extractYouTubeVideoId(trimmed);
+  if (!videoId) return '';
+
+  return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
 
 
 // Get all media
@@ -71,6 +100,20 @@ router.get('/search', async (req, res) => {
   }
 });
 
+router.get('/genres', async (req, res) => {
+  try {
+    const genres = await Media.distinct('genre');
+    const normalized = genres
+      .filter((genre) => typeof genre === 'string' && genre.trim())
+      .map((genre) => genre.trim())
+      .sort((a, b) => a.localeCompare(b));
+
+    return res.json({ genres: normalized });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
 
 
 // Request add media
@@ -78,9 +121,12 @@ router.post('/request', authenticateToken, async (req, res) => {
   try {
     console.log('Creating media request:', req.body); 
     console.log('User ID:', req.user.id); 
+
+    const trailerUrl = normalizeTrailerUrl(req.body?.trailerUrl);
     
     const mediaRequest = new MediaRequest({
       ...req.body,
+      trailerUrl,
       requestedBy: req.user.id
     });
     
@@ -144,7 +190,8 @@ router.post('/requests/:requestId/approve', authenticateToken, isAdmin, async (r
       genre: request.genre,
       director: request.director,
       description: request.description,
-      poster: request.poster
+      poster: request.poster,
+      trailerUrl: normalizeTrailerUrl(request.trailerUrl),
     });
 
     await newMedia.save();
@@ -228,7 +275,10 @@ router.get('/:id', optionalAuthenticateToken, async (req, res) => {
 
 router.post('/add', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const newMedia = new Media(req.body);
+    const newMedia = new Media({
+      ...req.body,
+      trailerUrl: normalizeTrailerUrl(req.body?.trailerUrl),
+    });
     await newMedia.save();
     res.json({ message: 'Media added!', media: newMedia });
   } catch (err) {
@@ -239,17 +289,21 @@ router.post('/add', authenticateToken, isAdmin, async (req, res) => {
 // Update media 
 router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const { title, director, genre, description, poster } = req.body;
+    const { title, director, genre, description, poster, trailerUrl } = req.body;
+    const updatePayload = {
+      title,
+      director,
+      genre,
+      description,
+      poster,
+    };
+    if (trailerUrl !== undefined) {
+      updatePayload.trailerUrl = normalizeTrailerUrl(trailerUrl);
+    }
     
     const updatedMedia = await Media.findByIdAndUpdate(
       req.params.id,
-      {
-        title,
-        director,
-        genre,
-        description,
-        poster
-      },
+      updatePayload,
       { new: true, runValidators: true }
     );
     

@@ -8,6 +8,7 @@ const mediaRequestSchema = new Schema({
   director: { type: String, required: true },
   description: { type: String, default: 'Theres nothing here...' },
   poster: { type: String, default: '' },
+  trailerUrl: { type: String, default: '' },
   requestedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   status: { 
     type: String, 

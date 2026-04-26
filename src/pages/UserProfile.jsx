@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import NavBar from './navbar';
+import { getBadgeMeta } from '../constants/achievements';
 import './Profile.css';
 
 function safeDecodeToken(token) {
@@ -132,6 +133,10 @@ export default function UserProfile() {
     </>
   );
 
+  const decoratedBadges = (Array.isArray(user.equippedBadges) ? user.equippedBadges : [])
+    .map((badgeId) => ({ id: badgeId, ...getBadgeMeta(badgeId) }))
+    .filter((badge) => badge.title);
+
   return (
     <>
       <NavBar />
@@ -142,6 +147,26 @@ export default function UserProfile() {
               <img src={user.avatar || '/logo192.png'} alt="avatar" className="profile-avatar" />
               <div>
                 <h3 className="mb-0">{user.username || 'Unknown'}</h3>
+                {user.favoriteQuote ? (
+                  <p className="profile-quote">"{user.favoriteQuote}"</p>
+                ) : null}
+                {Array.isArray(user.favoriteGenres) && user.favoriteGenres.length > 0 ? (
+                  <div className="profile-genre-preview">
+                    {user.favoriteGenres.map((genre) => (
+                      <span key={genre} className="profile-genre-pill">{genre}</span>
+                    ))}
+                  </div>
+                ) : null}
+                {decoratedBadges.length > 0 ? (
+                  <div className="profile-badge-strip">
+                    {decoratedBadges.map((badge) => (
+                      <div key={badge.id} className="profile-badge-chip" title={badge.title}>
+                        <img src={badge.image} alt={badge.title} className="profile-badge-image" />
+                        <span>{badge.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <div className="mb-muted">{user.email || 'No email found'}</div>
               </div>
             </div>

@@ -143,6 +143,27 @@
   cursor: pointer;
 }
 
+.find-users-button-professional {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+  border: 1px solid #b72c2c !important;
+  background: #1e0909 !important;
+  color: #f7efef !important;
+  font-size: 12px !important;
+  text-decoration: none !important;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.find-users-button-professional:hover {
+  background: #7c1a1a !important;
+  border-color: #d44747 !important;
+  color: #ffffff !important;
+}
+
 .recommendation-modal-overlay {
   position: fixed;
   inset: 0;

@@ -198,6 +198,10 @@ function NavBar() {
           </li>
         </ul>
 
+        <Link className="find-users-button-professional me-3" to="/find-users">
+          Find Users
+        </Link>
+
       
         <form className="d-flex me-3 search-container-professional" onSubmit={handleSearch}>
           <div className="input-group">

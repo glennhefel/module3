@@ -12,6 +12,7 @@ function AddMediaForm() {
     director: '',
     description: '',
     poster: '',
+    trailerUrl: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -80,6 +81,7 @@ function AddMediaForm() {
         director: '',
         description: '',
         poster: '',
+        trailerUrl: '',
       });
     } catch (err) {
       alert('Error: ' + err.message);
@@ -197,6 +199,19 @@ function AddMediaForm() {
                     name="poster"
                     placeholder="Enter poster image URL"
                     value={form.poster}
+                    onChange={handleChange}
+                    className="form-input"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Trailer URL (YouTube)</label>
+                  <input
+                    name="trailerUrl"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={form.trailerUrl}
                     onChange={handleChange}
                     className="form-input"
                     disabled={loading}

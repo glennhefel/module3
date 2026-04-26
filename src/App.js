@@ -13,6 +13,8 @@ import UserReviews from './pages/UserReviews';
 import UserDiscussions from './pages/UserDiscussions';
 import AdminRequests from './pages/AdminRequests';
 import CategoryPage from './pages/CategoryPage';
+import TasteMatches from './pages/TasteMatches';
+import SiteAssistant from './components/SiteAssistant';
 import './App.css';
 
 function App() {
@@ -30,6 +32,8 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/reviews" element={<UserReviews />} />
             <Route path="/profile/discussions" element={<UserDiscussions />} />
+            <Route path="/find-users" element={<TasteMatches />} />
+            <Route path="/profile/matches" element={<TasteMatches />} />
             <Route path="/admin/requests" element={<AdminRequests />} />
             <Route path="/users/:id" element={<UserProfile />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
@@ -39,6 +43,7 @@ function App() {
             <Route path="/categories/:categoryKey" element={<CategoryPage />} />
           </Routes>
         </header>
+        <SiteAssistant />
       </div>
     </Router>
   );

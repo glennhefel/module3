@@ -1,13 +1,138 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 import Watchlist from '../models/watchlist.model.js';
 import Review from '../models/review.model.js';
 import Discussion from '../models/discussion.model.js';
+import Media from '../models/media.model.js';
+import DirectMessage from '../models/directMessage.model.js';
 import { authenticateToken } from '../middleware/authi.js';
 
 const router = Router();
+
+function addGenreScore(vector, genre, weight) {
+  if (!genre || typeof genre !== 'string') return;
+  const normalized = genre.trim();
+  if (!normalized) return;
+  vector[normalized] = (vector[normalized] || 0) + weight;
+}
+
+function buildTasteVector({ favoriteGenres = [], watchlistItems = [], reviews = [] }) {
+  const vector = {};
+
+  favoriteGenres.forEach((genre) => addGenreScore(vector, genre, 4));
+  watchlistItems.forEach((item) => addGenreScore(vector, item?.media?.genre, 1));
+  reviews.forEach((review) => {
+    const ratingWeight = Math.max(0, Math.min(10, Number(review?.rating) || 0)) / 10;
+    addGenreScore(vector, review?.media?.genre, 2 + ratingWeight);
+  });
+
+  return vector;
+}
+
+function cosineSimilarity(vectorA, vectorB) {
+  const keys = new Set([...Object.keys(vectorA), ...Object.keys(vectorB)]);
+  if (keys.size === 0) return 0;
+
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
+
+  keys.forEach((key) => {
+    const a = vectorA[key] || 0;
+    const b = vectorB[key] || 0;
+    dot += a * b;
+    magA += a * a;
+    magB += b * b;
+  });
+
+  if (magA === 0 || magB === 0) return 0;
+  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+function getSortedParticipantIds(idA, idB) {
+  return [String(idA), String(idB)].sort().map((id) => new mongoose.Types.ObjectId(id));
+}
+
+function getParticipantsKey(idA, idB) {
+  return [String(idA), String(idB)].sort().join(':');
+}
+
+const MAX_EQUIPPED_BADGES = 3;
+const ACHIEVEMENT_BADGES = [
+  {
+    id: 'movie-marathon-i',
+    title: 'Movie Marathon I',
+    description: 'Complete 5 movies in your watchlist.',
+    metric: 'completedMovies',
+    target: 5,
+    image: '/badge1.png',
+  },
+  {
+    id: 'movie-marathon-ii',
+    title: 'Movie Marathon II',
+    description: 'Complete 20 movies in your watchlist.',
+    metric: 'completedMovies',
+    target: 20,
+    image: '/badge1.png',
+  },
+  {
+    id: 'discussion-spark',
+    title: 'Discussion Spark',
+    description: 'Post 15 discussion comments.',
+    metric: 'discussionComments',
+    target: 15,
+    image: '/badge1.png',
+  },
+  {
+    id: 'upvote-magnet',
+    title: 'Upvote Magnet',
+    description: 'Earn 30 upvotes on your reviews.',
+    metric: 'reviewUpvotes',
+    target: 30,
+    image: '/badge1.png',
+  },
+];
+
+async function getUserAchievementStats(userId) {
+  const [watchlist, discussionCount, reviewAgg] = await Promise.all([
+    Watchlist.findOne({ user: userId }).populate('items.media', 'media'),
+    Discussion.countDocuments({ user: userId }),
+    Review.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(String(userId)) } },
+      {
+        $group: {
+          _id: null,
+          totalUpvotes: { $sum: '$upvotes' },
+        },
+      },
+    ]),
+  ]);
+
+  const completedMovies = (watchlist?.items || []).filter(
+    (item) => item?.status === 'completed' && item?.media?.media === 'Movies'
+  ).length;
+
+  return {
+    completedMovies,
+    discussionComments: discussionCount || 0,
+    reviewUpvotes: reviewAgg?.[0]?.totalUpvotes || 0,
+  };
+}
+
+function buildAchievementPayload(stats) {
+  return ACHIEVEMENT_BADGES.map((badge) => {
+    const current = stats[badge.metric] || 0;
+    return {
+      ...badge,
+      current,
+      earned: current >= badge.target,
+      progress: Math.min(current, badge.target),
+    };
+  });
+}
 
 router.get('/', (req, res) => {
   User.find()
@@ -79,11 +204,46 @@ router.patch('/me', authenticateToken, async (req, res) => {
     const uid = req.user?.id || req.user?._id;
     if (!uid) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { username, email, password } = req.body;
+    const { username, email, password, avatar, favoriteQuote, favoriteGenres } = req.body;
     const update = {};
     if (username) update.username = username;
     if (email) update.email = email;
     if (password) update.password = await bcrypt.hash(password, 10);
+    if (avatar !== undefined) {
+      if (typeof avatar !== 'string') {
+        return res.status(400).json({ error: 'avatar must be a string' });
+      }
+      const normalizedAvatar = avatar.trim();
+      if (normalizedAvatar.length > 3000000) {
+        return res.status(400).json({ error: 'avatar image is too large' });
+      }
+      update.avatar = normalizedAvatar;
+    }
+    if (favoriteQuote !== undefined) {
+      if (typeof favoriteQuote !== 'string') {
+        return res.status(400).json({ error: 'favoriteQuote must be a string' });
+      }
+      update.favoriteQuote = favoriteQuote.trim();
+    }
+    if (favoriteGenres !== undefined) {
+      if (!Array.isArray(favoriteGenres)) {
+        return res.status(400).json({ error: 'favoriteGenres must be an array of strings' });
+      }
+      const availableGenres = await Media.distinct('genre');
+      const availableGenreSet = new Set(
+        availableGenres
+          .filter((genre) => typeof genre === 'string' && genre.trim())
+          .map((genre) => genre.trim())
+      );
+
+      update.favoriteGenres = [
+        ...new Set(
+          favoriteGenres
+            .filter((genre) => typeof genre === 'string' && genre.trim())
+            .map((genre) => genre.trim())
+        ),
+      ].filter((genre) => availableGenreSet.has(genre));
+    }
 
     const updated = await User.findByIdAndUpdate(uid, update, { new: true }).select('-password');
     if (!updated) return res.status(404).json({ error: 'User not found' });
@@ -208,6 +368,266 @@ router.get('/me/discussions', authenticateToken, async (req, res) => {
       .sort({ createdAt: -1 });
     
     return res.json(discussions);
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+router.get('/me/achievements', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const user = await User.findById(uid).select('equippedBadges');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const stats = await getUserAchievementStats(uid);
+    const achievements = buildAchievementPayload(stats);
+    const earnedBadgeSet = new Set(
+      achievements.filter((achievement) => achievement.earned).map((achievement) => achievement.id)
+    );
+    const equippedBadges = (user.equippedBadges || []).filter((badgeId) => earnedBadgeSet.has(badgeId));
+
+    return res.json({
+      achievements,
+      equippedBadges,
+      maxEquippedBadges: MAX_EQUIPPED_BADGES,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+router.patch('/me/achievements/equipped', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { badgeIds } = req.body;
+    if (!Array.isArray(badgeIds)) {
+      return res.status(400).json({ error: 'badgeIds must be an array' });
+    }
+
+    const uniqueBadgeIds = [...new Set(badgeIds.filter((id) => typeof id === 'string').map((id) => id.trim()))]
+      .filter(Boolean);
+
+    if (uniqueBadgeIds.length > MAX_EQUIPPED_BADGES) {
+      return res.status(400).json({ error: `You can equip at most ${MAX_EQUIPPED_BADGES} badges` });
+    }
+
+    const stats = await getUserAchievementStats(uid);
+    const achievements = buildAchievementPayload(stats);
+    const earnedBadgeSet = new Set(
+      achievements.filter((achievement) => achievement.earned).map((achievement) => achievement.id)
+    );
+
+    const invalidBadges = uniqueBadgeIds.filter((badgeId) => !earnedBadgeSet.has(badgeId));
+    if (invalidBadges.length > 0) {
+      return res.status(400).json({ error: 'You can only equip earned badges' });
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      uid,
+      { equippedBadges: uniqueBadgeIds },
+      { new: true }
+    ).select('-password');
+
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+    return res.json({ message: 'Equipped badges updated', user: updated });
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+});
+
+router.get('/me/taste-matches', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const selfUser = await User.findById(uid).select('favoriteGenres');
+    if (!selfUser) return res.status(404).json({ error: 'User not found' });
+
+    const [selfWatchlist, selfReviews] = await Promise.all([
+      Watchlist.findOne({ user: uid }).populate('items.media', 'genre'),
+      Review.find({ user: uid }).populate('media', 'genre').select('media rating'),
+    ]);
+
+    const selfVector = buildTasteVector({
+      favoriteGenres: selfUser.favoriteGenres || [],
+      watchlistItems: selfWatchlist?.items || [],
+      reviews: selfReviews || [],
+    });
+
+    const candidates = await User.find({ _id: { $ne: uid } }).select('username avatar favoriteGenres favoriteQuote');
+    if (candidates.length === 0) return res.json({ matches: [] });
+
+    const candidateIds = candidates.map((candidate) => candidate._id);
+    const [candidateWatchlists, candidateReviews] = await Promise.all([
+      Watchlist.find({ user: { $in: candidateIds } }).populate('items.media', 'genre'),
+      Review.find({ user: { $in: candidateIds } }).populate('media', 'genre').select('user media rating'),
+    ]);
+
+    const watchlistMap = new Map(
+      candidateWatchlists.map((watchlist) => [String(watchlist.user), watchlist.items || []])
+    );
+
+    const reviewsMap = new Map();
+    candidateReviews.forEach((review) => {
+      const ownerId = String(review.user);
+      const list = reviewsMap.get(ownerId) || [];
+      list.push(review);
+      reviewsMap.set(ownerId, list);
+    });
+
+    const matches = candidates
+      .map((candidate) => {
+        const candidateId = String(candidate._id);
+        const vector = buildTasteVector({
+          favoriteGenres: candidate.favoriteGenres || [],
+          watchlistItems: watchlistMap.get(candidateId) || [],
+          reviews: reviewsMap.get(candidateId) || [],
+        });
+        const similarity = cosineSimilarity(selfVector, vector);
+        const commonGenres = Object.keys(selfVector)
+          .filter((genre) => (vector[genre] || 0) > 0)
+          .sort((a, b) => Math.min(vector[b], selfVector[b]) - Math.min(vector[a], selfVector[a]))
+          .slice(0, 5);
+
+        return {
+          user: {
+            _id: candidate._id,
+            username: candidate.username,
+            avatar: candidate.avatar || '',
+            favoriteQuote: candidate.favoriteQuote || '',
+            favoriteGenres: candidate.favoriteGenres || [],
+          },
+          matchScore: Math.round(similarity * 100),
+          commonGenres,
+        };
+      })
+      .filter((item) => item.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 25);
+
+    return res.json({ matches });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+router.get('/me/dms', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const conversations = await DirectMessage.find({ participants: uid })
+      .populate('participants', 'username avatar favoriteQuote')
+      .sort({ updatedAt: -1 });
+
+    const result = conversations.map((conversation) => {
+      const otherUser = conversation.participants.find((participant) => String(participant._id) !== String(uid));
+      const lastMessage = conversation.messages[conversation.messages.length - 1] || null;
+      return {
+        _id: conversation._id,
+        otherUser: otherUser || null,
+        lastMessage,
+        updatedAt: conversation.updatedAt,
+      };
+    });
+
+    return res.json({ conversations: result });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+router.get('/me/dms/:otherUserId', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { otherUserId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+    if (String(uid) === String(otherUserId)) {
+      return res.status(400).json({ error: 'Cannot open a direct message with yourself' });
+    }
+
+    const otherUser = await User.findById(otherUserId).select('username avatar favoriteQuote');
+    if (!otherUser) return res.status(404).json({ error: 'User not found' });
+
+    const participantsKey = getParticipantsKey(uid, otherUserId);
+    const conversation = await DirectMessage.findOne({ participantsKey })
+      .populate('messages.sender', 'username avatar');
+
+    return res.json({
+      conversation: conversation
+        ? {
+            _id: conversation._id,
+            messages: conversation.messages || [],
+          }
+        : {
+            _id: null,
+            messages: [],
+          },
+      otherUser,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+});
+
+router.post('/me/dms/:otherUserId', authenticateToken, async (req, res) => {
+  try {
+    const uid = req.user?.id || req.user?._id;
+    if (!uid) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { otherUserId } = req.params;
+    const { message } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+    if (String(uid) === String(otherUserId)) {
+      return res.status(400).json({ error: 'Cannot send a direct message to yourself' });
+    }
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'Message cannot be empty' });
+    }
+    if (message.trim().length > 500) {
+      return res.status(400).json({ error: 'Message too long (max 500 characters)' });
+    }
+
+    const otherUser = await User.findById(otherUserId).select('username avatar favoriteQuote');
+    if (!otherUser) return res.status(404).json({ error: 'User not found' });
+
+    const participantsKey = getParticipantsKey(uid, otherUserId);
+    const participantIds = getSortedParticipantIds(uid, otherUserId);
+    let conversation = await DirectMessage.findOne({ participantsKey });
+    if (!conversation) {
+      conversation = new DirectMessage({
+        participants: participantIds,
+        participantsKey,
+        messages: [],
+      });
+    }
+
+    conversation.messages.push({
+      sender: uid,
+      text: message.trim(),
+    });
+
+    await conversation.save();
+    await conversation.populate('messages.sender', 'username avatar');
+
+    return res.status(201).json({
+      conversation: {
+        _id: conversation._id,
+        messages: conversation.messages,
+      },
+      otherUser,
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message || String(err) });
   }

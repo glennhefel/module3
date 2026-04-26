@@ -17,6 +17,7 @@ const mediaSchema = new mongoose.Schema({
     maxlength: 10000
   },
   poster: { type: String, maxlength: 500 },
+  trailerUrl: { type: String, default: '', maxlength: 500 },
 }, {
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
