@@ -411,7 +411,7 @@ function MediaDetail() {
                     <iframe
                       title={`${media.title} trailer`}
                       className="movie-trailer-frame"
-                      src={`https://www.youtube.com/embed/${trailerVideoId}?enablejsapi=1&rel=0&modestbranding=1&origin=${encodeURIComponent(embedOrigin)}`}
+                      src={`https://www.youtube.com/embed/${trailerVideoId}?origin=${encodeURIComponent(embedOrigin)}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       referrerPolicy="strict-origin-when-cross-origin"
                       allowFullScreen

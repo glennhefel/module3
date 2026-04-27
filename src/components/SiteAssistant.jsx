@@ -75,7 +75,7 @@ export default function SiteAssistant() {
       const description = String(mediaData?.description || '').trim();
       if (!description) throw new Error('This media has no description yet');
 
-      const prompt = `Please summarize this media description in 4 concise bullet points and include a 1-line "Should I watch this?" takeaway:\n\n${description}`;
+      const prompt = `Please summarize this media description in 2 concise bullet points and include a 1-line "Should I watch this?" takeaway:\n\n${description}`;
       const nextMessages = [...messages, { role: 'user', content: prompt }];
       setMessages(nextMessages);
       const reply = await sendToAssistant(nextMessages);

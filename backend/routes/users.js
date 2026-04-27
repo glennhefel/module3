@@ -32,25 +32,7 @@ function buildTasteVector({ favoriteGenres = [], watchlistItems = [], reviews = 
   return vector;
 }
 
-function cosineSimilarity(vectorA, vectorB) {
-  const keys = new Set([...Object.keys(vectorA), ...Object.keys(vectorB)]);
-  if (keys.size === 0) return 0;
-
-  let dot = 0;
-  let magA = 0;
-  let magB = 0;
-
-  keys.forEach((key) => {
-    const a = vectorA[key] || 0;
-    const b = vectorB[key] || 0;
-    dot += a * b;
-    magA += a * a;
-    magB += b * b;
-  });
-
-  if (magA === 0 || magB === 0) return 0;
-  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
-}
+// Removed cosineSimilarity helper: replaced by simple genre-match percent in `/me/taste-matches`.
 
 function getSortedParticipantIds(idA, idB) {
   return [String(idA), String(idB)].sort().map((id) => new mongoose.Types.ObjectId(id));
@@ -452,10 +434,14 @@ router.get('/me/taste-matches', authenticateToken, async (req, res) => {
       Review.find({ user: uid }).populate('media', 'genre').select('media rating'),
     ]);
 
-    const selfVector = buildTasteVector({
-      favoriteGenres: selfUser.favoriteGenres || [],
-      watchlistItems: selfWatchlist?.items || [],
-      reviews: selfReviews || [],
+    // Build a simple set of genres from the current user's favorites and watchlist.
+    const selfGenres = new Set();
+    (selfUser.favoriteGenres || []).forEach((g) => {
+      if (typeof g === 'string' && g.trim()) selfGenres.add(g.trim().toLowerCase());
+    });
+    (selfWatchlist?.items || []).forEach((item) => {
+      const genre = item?.media?.genre;
+      if (typeof genre === 'string' && genre.trim()) selfGenres.add(genre.trim().toLowerCase());
     });
 
     const candidates = await User.find({ _id: { $ne: uid } }).select('username avatar favoriteGenres favoriteQuote');
@@ -482,16 +468,31 @@ router.get('/me/taste-matches', authenticateToken, async (req, res) => {
     const matches = candidates
       .map((candidate) => {
         const candidateId = String(candidate._id);
-        const vector = buildTasteVector({
-          favoriteGenres: candidate.favoriteGenres || [],
-          watchlistItems: watchlistMap.get(candidateId) || [],
-          reviews: reviewsMap.get(candidateId) || [],
+        // Build candidate genre set (favorites + watchlist genres)
+        const candidateGenres = new Set();
+        (candidate.favoriteGenres || []).forEach((g) => {
+          if (typeof g === 'string' && g.trim()) candidateGenres.add(g.trim().toLowerCase());
         });
-        const similarity = cosineSimilarity(selfVector, vector);
-        const commonGenres = Object.keys(selfVector)
-          .filter((genre) => (vector[genre] || 0) > 0)
-          .sort((a, b) => Math.min(vector[b], selfVector[b]) - Math.min(vector[a], selfVector[a]))
-          .slice(0, 5);
+        (watchlistMap.get(candidateId) || []).forEach((item) => {
+          const genre = item?.media?.genre;
+          if (typeof genre === 'string' && genre.trim()) candidateGenres.add(genre.trim().toLowerCase());
+        });
+
+        // Compute simple match percentage based on how many of the user's genres
+        // are present in the candidate's genres. If the user has no genres, score 0.
+        const userGenreCount = selfGenres.size;
+        let matchScore = 0;
+        const commonGenres = [];
+        if (userGenreCount > 0) {
+          let matches = 0;
+          selfGenres.forEach((g) => {
+            if (candidateGenres.has(g)) {
+              matches += 1;
+              commonGenres.push(g);
+            }
+          });
+          matchScore = Math.round((matches / userGenreCount) * 100);
+        }
 
         return {
           user: {
@@ -501,7 +502,7 @@ router.get('/me/taste-matches', authenticateToken, async (req, res) => {
             favoriteQuote: candidate.favoriteQuote || '',
             favoriteGenres: candidate.favoriteGenres || [],
           },
-          matchScore: Math.round(similarity * 100),
+          matchScore,
           commonGenres,
         };
       })
