@@ -82,6 +82,13 @@ function NavBar() {
   const [isRecommendationOpen, setIsRecommendationOpen] = useState(false);
   const [recommendationStep, setRecommendationStep] = useState(0);
   const [recommendationScores, setRecommendationScores] = useState(getInitialScores);
+  const [scrapeStatus, setScrapeStatus] = useState('');
+  const [lastRunId, setLastRunId] = useState(() => {
+    try { return localStorage.getItem('lastScrapeRunId') || ''; } catch (e) { return ''; }
+  });
+  const [showScrapeLog, setShowScrapeLog] = useState(false);
+  const [scrapeLogs, setScrapeLogs] = useState([]);
+  const [eventSource, setEventSource] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -201,6 +208,142 @@ function NavBar() {
         <Link className="find-users-button-professional me-3" to="/find-users">
           Find Users
         </Link>
+        {isAdmin && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginRight: 6 }}>
+            <button
+              title="Run scraper"
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                if (!token) return alert('Not authenticated');
+                setScrapeStatus('Starting...');
+                // open log modal and start SSE
+                setShowScrapeLog(true);
+                setScrapeLogs([]);
+                try {
+                  const es = new EventSource(`http://localhost:5000/admin/scrape/events?token=${encodeURIComponent(token)}`);
+                  es.onmessage = (ev) => {
+                    try {
+                      const payload = JSON.parse(ev.data);
+                      setScrapeLogs((prev) => [...prev, payload]);
+                    } catch (e) {}
+                  };
+                  es.onerror = () => {
+                    // keep modal open; errors will be reflected in logs
+                  };
+                  setEventSource(es);
+                } catch (e) {
+                  console.error('SSE error', e);
+                }
+                try {
+                  const res = await fetch('http://localhost:5000/admin/scrape', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ limit: 100 }),
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setScrapeStatus('Started');
+                    if (data.runId) {
+                      setLastRunId(data.runId);
+                      try { localStorage.setItem('lastScrapeRunId', data.runId); } catch (e) {}
+                    }
+                  } else {
+                    setScrapeStatus(data.error || 'Failed');
+                  }
+                } catch (err) {
+                  console.error(err);
+                  setScrapeStatus('Error');
+                }
+                setTimeout(() => setScrapeStatus(''), 4000);
+              }}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                background: '#f6c23e',
+                border: 'none',
+                color: '#000',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              +
+            </button>
+
+            <button
+              title="Revert last scrape"
+              onClick={async () => {
+                const token = localStorage.getItem('token');
+                if (!token) return alert('Not authenticated');
+                const runId = lastRunId || '';
+                if (!runId) return alert('No runId available to revert');
+                setScrapeStatus('Reverting...');
+                try {
+                  const res = await fetch('http://localhost:5000/admin/revert', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ runId }),
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setScrapeStatus(data.message || 'Reverted');
+                    setLastRunId('');
+                    try { localStorage.removeItem('lastScrapeRunId'); } catch (e) {}
+                  } else {
+                    setScrapeStatus(data.error || 'Failed');
+                  }
+                } catch (err) {
+                  console.error(err);
+                  setScrapeStatus('Error');
+                }
+                setTimeout(() => setScrapeStatus(''), 4000);
+              }}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                background: '#e74a3b',
+                border: 'none',
+                color: '#fff',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              −
+            </button>
+            {scrapeStatus && <small style={{ marginLeft: 6 }}>{scrapeStatus}</small>}
+          </div>
+        )}
+
+        {showScrapeLog && (
+          <div className="scrape-log-modal-overlay" style={{position:'fixed',left:0,top:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999}}>
+            <div style={{width:'min(800px,95%)',maxHeight:'70vh',background:'#0f0f10',color:'#fff',borderRadius:8,padding:12,overflow:'auto'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                <strong>Scrape logs</strong>
+                <div>
+                  <button className="btn btn-sm btn-secondary" onClick={() => {
+                    if (eventSource) { eventSource.close(); setEventSource(null); }
+                    setShowScrapeLog(false);
+                  }}>Close</button>
+                </div>
+              </div>
+              <div style={{fontSize:13,lineHeight:1.4}}>
+                {scrapeLogs.length === 0 ? <div style={{opacity:0.7}}>Waiting for logs...</div> : scrapeLogs.map((l, idx) => (
+                  <div key={idx} style={{padding:'6px 0',borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                    <div style={{fontSize:12,opacity:0.75}}>{l.type}{l.page ? ` • page ${l.page}` : ''}{l.runId ? ` • run ${l.runId}` : ''}</div>
+                    <div>{l.type === 'saved' ? `Saved: ${l.title}` : l.type === 'skipped' ? `Skipped: ${l.title}` : l.type === 'error' ? `Error (${l.message})` : JSON.stringify(l)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
       
         <form className="d-flex me-3 search-container-professional" onSubmit={handleSearch}>

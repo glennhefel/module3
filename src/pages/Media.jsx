@@ -298,6 +298,21 @@ function MediaDetail() {
     : 'N/A';
   const reviewCount = typeof media.total_votes === 'number' ? media.total_votes : reviews.length;
   const trailerVideoId = extractYouTubeVideoId(media?.trailerUrl);
+  function extractSpotifyTrackIdForClient(url = '') {
+    const v = String(url || '').trim();
+    if (!v) return '';
+    const patterns = [
+      /open\.spotify\.com\/track\/([a-zA-Z0-9]+)(?:[?]|$)/i,
+      /spotify:track:([a-zA-Z0-9]+)/i,
+    ];
+    for (const p of patterns) {
+      const m = v.match(p);
+      if (m?.[1]) return m[1];
+    }
+    return '';
+  }
+  const spotifyTrackId = extractSpotifyTrackIdForClient(media?.spotifyUrl || media?.spotifyTrackId);
+  const spotifyEditValue = media?.spotifyUrl || (media?.spotifyTrackId ? `https://open.spotify.com/track/${media.spotifyTrackId}` : '');
   const embedOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
   return (
@@ -355,6 +370,24 @@ function MediaDetail() {
               >
                 Discuss →
               </button>
+
+              {spotifyTrackId ? (
+                <div className="movie-trailer-section movie-ost-section">
+                  <h4>OST</h4>
+                  <div className="movie-trailer-frame-wrap movie-ost-frame-wrap">
+                    <iframe
+                      title={`${media.title} music`}
+                      className="movie-trailer-frame"
+                      src={`https://open.spotify.com/embed/track/${spotifyTrackId}`}
+                      width="100%"
+                      height="80"
+                      frameBorder="0"
+                      allowtransparency="true"
+                      allow="encrypted-media"
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="movie-details">
@@ -652,6 +685,7 @@ function MediaDetail() {
                   description: e.target.description.value,
                   poster: e.target.poster.value,
                   trailerUrl: e.target.trailerUrl.value,
+                  spotifyUrl: e.target.spotifyUrl.value,
                 };
                 await handleEdit(formData);
               }}>
@@ -740,6 +774,20 @@ function MediaDetail() {
                     defaultValue={media.trailerUrl || ''}
                     className="form-control"
                     placeholder="https://www.youtube.com/watch?v=..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <span className="label-icon"></span>
+                    Spotify Track URL
+                  </label>
+                  <input
+                    name="spotifyUrl"
+                    type="url"
+                    defaultValue={spotifyEditValue}
+                    className="form-control"
+                    placeholder="https://open.spotify.com/track/..."
                   />
                 </div>
 

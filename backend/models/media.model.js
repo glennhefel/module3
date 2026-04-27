@@ -18,6 +18,13 @@ const mediaSchema = new mongoose.Schema({
   },
   poster: { type: String, maxlength: 500 },
   trailerUrl: { type: String, default: '', maxlength: 500 },
+  spotifyUrl: { type: String, default: '', maxlength: 500 },
+  spotifyTrackId: { type: String, default: '' },
+  // Metadata set by automated scrapers/imports
+  scraped: { type: Boolean, default: false },
+  scrapeRunId: { type: String, default: '' },
+  scrapeSource: { type: String, default: '' },
+  scrapeExternalId: { type: String, default: '' },
 }, {
   toJSON: { virtuals: true },
   toObject: { virtuals: true },

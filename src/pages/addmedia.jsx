@@ -13,6 +13,7 @@ function AddMediaForm() {
     description: '',
     poster: '',
     trailerUrl: '',
+    spotifyUrl: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -59,7 +60,7 @@ function AddMediaForm() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+            body: JSON.stringify(form),
       });
 
       if (!res.ok) {
@@ -82,6 +83,7 @@ function AddMediaForm() {
         description: '',
         poster: '',
         trailerUrl: '',
+        spotifyUrl: '',
       });
     } catch (err) {
       alert('Error: ' + err.message);
@@ -212,6 +214,19 @@ function AddMediaForm() {
                     type="url"
                     placeholder="https://www.youtube.com/watch?v=..."
                     value={form.trailerUrl}
+                    onChange={handleChange}
+                    className="form-input"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Spotify Track URL</label>
+                  <input
+                    name="spotifyUrl"
+                    type="url"
+                    placeholder="https://open.spotify.com/track/..."
+                    value={form.spotifyUrl}
                     onChange={handleChange}
                     className="form-input"
                     disabled={loading}

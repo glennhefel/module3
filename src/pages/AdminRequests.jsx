@@ -145,6 +145,11 @@ export default function AdminRequests() {
                           <p><strong>Director:</strong> {request.director}</p>
                           <p><strong>Release Date:</strong> {new Date(request.release_date).toLocaleDateString()}</p>
                           <p><strong>Description:</strong> {request.description}</p>
+                          {request.spotifyUrl && (
+                            <p>
+                              <strong>Spotify:</strong> <a href={request.spotifyUrl} target="_blank" rel="noreferrer">Open track</a>
+                            </p>
+                          )}
                         </div>
                         <div className="col-md-4">
                           {request.poster && (

@@ -16,6 +16,35 @@
   margin: 0 auto;
 }
 
+.catalog-filter-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0 0 1rem;
+}
+
+.catalog-genre-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0.15rem 0.1rem 0.15rem 0;
+  border: none;
+  background: transparent;
+  color: #f3eaea;
+  font-size: 0.96rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  outline: none;
+}
+
+.catalog-genre-select:hover {
+  color: #ffffff;
+}
+
+.catalog-genre-select option {
+  color: #111;
+}
+
 .catalog-loading,
 .catalog-empty-state {
   padding: 1.5rem 1.75rem;

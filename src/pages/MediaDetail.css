@@ -144,6 +144,10 @@ body, html {
   margin-top: 0.2rem;
 }
 
+.movie-ost-section {
+  max-width: 380px;
+}
+
 .movie-trailer-section h4 {
   margin: 0 0 0.75rem;
   color: #f4f0f0;
@@ -160,6 +164,14 @@ body, html {
   border: 1px solid rgba(204, 34, 34, 0.4);
   background: #040404;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.movie-ost-frame-wrap {
+  aspect-ratio: auto;
+  height: 96px;
+  border-radius: 8px;
+  border: 0;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .movie-trailer-frame {

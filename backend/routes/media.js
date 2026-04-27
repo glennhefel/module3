@@ -42,6 +42,33 @@ function normalizeTrailerUrl(value = '') {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+function extractSpotifyTrackId(value = '') {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  // Examples:
+  // https://open.spotify.com/track/{id}
+  // https://open.spotify.com/track/{id}?si=...
+  // spotify:track:{id}
+  const patterns = [
+    /open\.spotify\.com\/track\/([a-zA-Z0-9]+)(?:[?]|$)/i,
+    /spotify:track:([a-zA-Z0-9]+)/i,
+  ];
+
+  for (const p of patterns) {
+    const m = trimmed.match(p);
+    if (m?.[1]) return m[1];
+  }
+
+  return '';
+}
+
+function normalizeSpotifyUrl(value = '') {
+  const id = extractSpotifyTrackId(value);
+  if (!id) return '';
+  return `https://open.spotify.com/track/${id}`;
+}
+
 
 
 // Get all media
@@ -84,7 +111,7 @@ router.get('/search', async (req, res) => {
       return res.json([]); 
     }
     
-    const results = await Media.find({
+    const results = await Media.find({ 
       $or: [
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
@@ -123,10 +150,12 @@ router.post('/request', authenticateToken, async (req, res) => {
     console.log('User ID:', req.user.id); 
 
     const trailerUrl = normalizeTrailerUrl(req.body?.trailerUrl);
+    const spotifyUrl = normalizeSpotifyUrl(req.body?.spotifyUrl);
     
     const mediaRequest = new MediaRequest({
       ...req.body,
       trailerUrl,
+      spotifyUrl,
       requestedBy: req.user.id
     });
     
@@ -192,6 +221,8 @@ router.post('/requests/:requestId/approve', authenticateToken, isAdmin, async (r
       description: request.description,
       poster: request.poster,
       trailerUrl: normalizeTrailerUrl(request.trailerUrl),
+      spotifyUrl: normalizeSpotifyUrl(request.spotifyUrl),
+      spotifyTrackId: extractSpotifyTrackId(request.spotifyUrl),
     });
 
     await newMedia.save();
@@ -278,6 +309,8 @@ router.post('/add', authenticateToken, isAdmin, async (req, res) => {
     const newMedia = new Media({
       ...req.body,
       trailerUrl: normalizeTrailerUrl(req.body?.trailerUrl),
+      spotifyUrl: normalizeSpotifyUrl(req.body?.spotifyUrl),
+      spotifyTrackId: extractSpotifyTrackId(req.body?.spotifyUrl),
     });
     await newMedia.save();
     res.json({ message: 'Media added!', media: newMedia });
@@ -299,6 +332,10 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
     };
     if (trailerUrl !== undefined) {
       updatePayload.trailerUrl = normalizeTrailerUrl(trailerUrl);
+    }
+    if (req.body.spotifyUrl !== undefined) {
+      updatePayload.spotifyUrl = normalizeSpotifyUrl(req.body.spotifyUrl);
+      updatePayload.spotifyTrackId = extractSpotifyTrackId(req.body.spotifyUrl);
     }
     
     const updatedMedia = await Media.findByIdAndUpdate(

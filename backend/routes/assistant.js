@@ -22,7 +22,7 @@ function getAssistantProviderConfig() {
     return {
       provider: 'openrouter',
       apiKey: process.env.OPENROUTER_API_KEY || '',
-      model: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free',
+      model: process.env.OPENROUTER_MODEL || 'openrouter/free',
       endpoint: 'https://openrouter.ai/api/v1/chat/completions',
       extraHeaders: {
         'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
@@ -68,25 +68,50 @@ router.post('/chat', async (req, res) => {
       content:
         'You are VoidRift Assistant, an in-site helper for a movie/anime/TV discovery platform. ' +
         'Primary jobs: summarize movie/show descriptions clearly, answer site usage questions, and help users navigate features (profile, watchlist, reviews, discussions, find users, badges). ' +
-        'Keep responses concise, friendly, and practical. If details are unknown, say so clearly instead of guessing. ' +
+        'Keep responses concise, friendly, and practical. Do not start replies with generic capability disclaimers. ' +
+        'If a user asks for watchlist/review-specific help, give concrete step-by-step actions in the app and offer recommendations when useful. ' +
+        'If exact personal data is not available in the message context, ask one short follow-up question instead of giving a long refusal. ' +
+        'If details are unknown, state uncertainty briefly and avoid guessing. ' +
         `Current page path: ${pagePath || 'unknown'}.`,
     };
 
-    const upstreamResponse = await fetch(endpoint, {
+    const requestPayload = {
+      model,
+      temperature: 0.4,
+      messages: [systemMessage, ...sanitizedMessages],
+    };
+
+    let upstreamResponse = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
         ...extraHeaders,
       },
-      body: JSON.stringify({
-        model,
-        temperature: 0.4,
-        messages: [systemMessage, ...sanitizedMessages],
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
-    const data = await upstreamResponse.json().catch(() => ({}));
+    let data = await upstreamResponse.json().catch(() => ({}));
+
+    // If OpenRouter reports the model has no endpoints, retry once on a safe router model.
+    if (
+      providerConfig.provider === 'openrouter' &&
+      !upstreamResponse.ok &&
+      String(data?.error?.message || '').toLowerCase().includes('no endpoints found')
+    ) {
+      requestPayload.model = 'openrouter/free';
+      upstreamResponse = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          ...extraHeaders,
+        },
+        body: JSON.stringify(requestPayload),
+      });
+      data = await upstreamResponse.json().catch(() => ({}));
+    }
+
     if (!upstreamResponse.ok) {
       return res.status(upstreamResponse.status).json({
         error: data?.error?.message || 'Failed to fetch AI response',

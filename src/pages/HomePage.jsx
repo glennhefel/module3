@@ -21,6 +21,7 @@ function sortByRating(items) {
 function HomePage() {
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedGenre, setSelectedGenre] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:5000/media')
@@ -42,11 +43,29 @@ function HomePage() {
     () => CATEGORY_SECTIONS
       .map((section) => ({
         ...section,
-        items: sortByRating(media.filter((item) => item.media === section.mediaType)).slice(0, 5),
+        items: sortByRating(
+          media.filter((item) => {
+            const matchesType = item.media === section.mediaType;
+            const matchesGenre = !selectedGenre || item.genre === selectedGenre;
+            return matchesType && matchesGenre;
+          })
+        ).slice(0, 5),
       }))
       .filter((section) => section.items.length > 0),
-    [media]
+    [media, selectedGenre]
   );
+
+  const genreOptions = useMemo(() => {
+    const uniqueGenres = Array.from(
+      new Set(
+        media
+          .map((item) => item.genre)
+          .filter((genre) => typeof genre === 'string' && genre.trim())
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return uniqueGenres;
+  }, [media]);
 
   return (
     <div className="homepage-dark catalog-homepage">
@@ -54,6 +73,22 @@ function HomePage() {
 
       <main className="catalog-main">
         <div className="catalog-container">
+          <div className="catalog-filter-wrap">
+            <select
+              className="catalog-genre-select"
+              value={selectedGenre}
+              onChange={(event) => setSelectedGenre(event.target.value)}
+              aria-label="Filter by genre"
+            >
+              <option value="">All genres</option>
+              {genreOptions.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {loading ? (
             <div className="catalog-loading">Loading your library...</div>
           ) : sections.length === 0 ? (
