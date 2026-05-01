@@ -289,7 +289,7 @@ function MediaDetail() {
   const handleUpvote = (reviewId) => sendReviewVote(reviewId, 1);
   const handleDownvote = (reviewId) => sendReviewVote(reviewId, -1);
 
-  if (media === null) return <div>Media not found.</div>;
+  if (media === null) return <div>Loading</div>;
 
   const releaseYear = media.release_date && !Number.isNaN(new Date(media.release_date).getTime())
     ? new Date(media.release_date).getFullYear()
