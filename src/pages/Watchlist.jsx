@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import NavBar from './navbar';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function safeDecodeToken(token) {
   if (!token) return null;
@@ -34,8 +35,8 @@ export default function WatchlistPage() {
 
     try {
       const endpoint = isOtherUserProfile
-        ? `http://localhost:5000/users/${id}/watchlist`
-        : 'http://localhost:5000/users/me/watchlist';
+        ? `${API_BASE_URL}/users/${id}/watchlist`
+        : `${API_BASE_URL}/users/me/watchlist`;
 
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(endpoint, {
@@ -64,7 +65,7 @@ export default function WatchlistPage() {
     const fetchProfileUser = async () => {
       if (!isOtherUserProfile) return;
       try {
-        const res = await fetch(`http://localhost:5000/users/${id}`);
+        const res = await fetch(`${API_BASE_URL}/users/${id}`);
         if (!res.ok) return;
         const data = await res.json();
         setProfileUser(data.user || null);
@@ -82,7 +83,7 @@ export default function WatchlistPage() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/users/me/watchlist/${mediaId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/users/me/watchlist/${mediaId}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export default function WatchlistPage() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/users/me/watchlist/${mediaId}`, {
+      const res = await fetch(`${API_BASE_URL}/users/me/watchlist/${mediaId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

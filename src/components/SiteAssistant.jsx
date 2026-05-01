@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './SiteAssistant.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function getMediaIdFromPath(pathname) {
   const match = String(pathname || '').match(/^\/media\/([^/]+)$/);
@@ -24,7 +25,7 @@ export default function SiteAssistant() {
   const mediaId = useMemo(() => getMediaIdFromPath(location.pathname), [location.pathname]);
 
   const sendToAssistant = async (nextMessages) => {
-    const res = await fetch('http://localhost:5000/ai/chat', {
+    const res = await fetch(`${API_BASE_URL}/ai/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,7 +70,7 @@ export default function SiteAssistant() {
     if (!mediaId || sending) return;
     setSending(true);
     try {
-      const mediaRes = await fetch(`http://localhost:5000/media/${mediaId}`);
+      const mediaRes = await fetch(`${API_BASE_URL}/media/${mediaId}`);
       if (!mediaRes.ok) throw new Error('Could not load current media');
       const mediaData = await mediaRes.json();
       const description = String(mediaData?.description || '').trim();

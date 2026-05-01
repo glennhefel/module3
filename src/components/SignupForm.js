@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InputField from './InputField';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function SignupForm() {
   const [form, setForm] = useState({
@@ -26,7 +27,7 @@ function SignupForm() {
     }
 
      try {
-    const res = await axios.post('http://localhost:5000/users/signup', {
+    const res = await axios.post(`${API_BASE_URL}/users/signup`, {
       username: form.name,
       password: form.password,
       email: form.email,

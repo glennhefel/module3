@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import NavBar from './navbar';
 import { getBadgeMeta } from '../constants/achievements';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 const DEFAULT_AVATAR = '/logo192.png';
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -46,7 +47,7 @@ export default function Profile() {
  
     const fetchUser = async () => {
       try {
-        const res = await fetch('http://localhost:5000/users/me', {
+        const res = await fetch(`${API_BASE_URL}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -91,7 +92,7 @@ export default function Profile() {
   useEffect(() => {
     const fetchGenres = async () => {
       try {
-        const res = await fetch('http://localhost:5000/media/genres');
+        const res = await fetch(`${API_BASE_URL}/media/genres`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setAvailableGenres(Array.isArray(data.genres) ? data.genres : []);
@@ -110,7 +111,7 @@ export default function Profile() {
 
     const fetchAchievements = async () => {
       try {
-        const res = await fetch('http://localhost:5000/users/me/achievements', {
+        const res = await fetch(`${API_BASE_URL}/users/me/achievements`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -138,7 +139,7 @@ export default function Profile() {
     
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json', 
@@ -175,7 +176,7 @@ export default function Profile() {
     
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json', 
@@ -213,7 +214,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -265,7 +266,7 @@ export default function Profile() {
 
     setSavingBadges(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me/achievements/equipped', {
+      const res = await fetch(`${API_BASE_URL}/users/me/achievements/equipped`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -338,7 +339,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InputField from './InputField';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function LoginForm() {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -15,7 +16,7 @@ function LoginForm() {
     e.preventDefault();
 
     try {
-      const res = await axios.post('http://localhost:5000/users/login', {
+      const res = await axios.post(`${API_BASE_URL}/users/login`, {
         username: form.username,
         password: form.password,
       });

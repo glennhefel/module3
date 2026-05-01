@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import '../components/navbar.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 const GENRE_ORDER = [
   'Horror',
@@ -220,7 +221,7 @@ function NavBar() {
                 setShowScrapeLog(true);
                 setScrapeLogs([]);
                 try {
-                  const es = new EventSource(`http://localhost:5000/admin/scrape/events?token=${encodeURIComponent(token)}`);
+                  const es = new EventSource(`${API_BASE_URL}/admin/scrape/events?token=${encodeURIComponent(token)}`);
                   es.onmessage = (ev) => {
                     try {
                       const payload = JSON.parse(ev.data);
@@ -235,7 +236,7 @@ function NavBar() {
                   console.error('SSE error', e);
                 }
                 try {
-                  const res = await fetch('http://localhost:5000/admin/scrape', {
+                  const res = await fetch(`${API_BASE_URL}/admin/scrape`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -282,7 +283,7 @@ function NavBar() {
                 if (!runId) return alert('No runId available to revert');
                 setScrapeStatus('Reverting...');
                 try {
-                  const res = await fetch('http://localhost:5000/admin/revert', {
+                  const res = await fetch(`${API_BASE_URL}/admin/revert`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',

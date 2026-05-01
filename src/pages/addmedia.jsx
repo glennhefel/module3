@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import NavBar from './navbar';
 import './addmedia.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function AddMediaForm() {
   const [form, setForm] = useState({
@@ -51,8 +52,8 @@ function AddMediaForm() {
 
     try {
       const endpoint = isAdmin
-        ? 'http://localhost:5000/media/add'
-        : 'http://localhost:5000/media/request';
+        ? `${API_BASE_URL}/media/add`
+        : `${API_BASE_URL}/media/request`;
 
       const res = await fetch(endpoint, {
         method: 'POST',

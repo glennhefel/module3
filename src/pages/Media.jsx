@@ -4,6 +4,7 @@ import './MediaDetail.css';
 import { jwtDecode } from "jwt-decode";
 import NavBar from './navbar';
 import Discussion from '../components/Discussion';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function extractYouTubeVideoId(url = '') {
   const value = String(url || '').trim();
@@ -48,7 +49,7 @@ function MediaDetail() {
     if (!token) return;
 
     try {
-      const res = await fetch('http://localhost:5000/users/me/watchlist', {
+      const res = await fetch(`${API_BASE_URL}/users/me/watchlist`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -69,7 +70,7 @@ function MediaDetail() {
     const token = localStorage.getItem('token');
     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
     
-    fetch(`http://localhost:5000/media/${id}`, { headers })
+    fetch(`${API_BASE_URL}/media/${id}`, { headers })
       .then(res => {
         if (!res.ok) throw new Error('Not found');
         return res.json();
@@ -98,7 +99,7 @@ function MediaDetail() {
     try {
       if (isInWatchlist) {
         // Remove from watchlist
-        const res = await fetch(`http://localhost:5000/users/me/watchlist/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/users/me/watchlist/${id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -110,7 +111,7 @@ function MediaDetail() {
         }
       } else {
         // Add to watchlist
-        const res = await fetch('http://localhost:5000/users/me/watchlist', {
+        const res = await fetch(`${API_BASE_URL}/users/me/watchlist`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ function MediaDetail() {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this media?')) {
       try {
-        const res = await fetch(`http://localhost:5000/media/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/media/${id}`, {
           method: 'DELETE',
           headers: { 
             'Content-Type': 'application/json',
@@ -173,7 +174,7 @@ function MediaDetail() {
 
   const handleEdit = async (editData) => {
     try {
-      const res = await fetch(`http://localhost:5000/media/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/media/${id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -205,7 +206,7 @@ function MediaDetail() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/ratings/reviews/${reviewId}/vote`, {
+      const res = await fetch(`${API_BASE_URL}/ratings/reviews/${reviewId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,7 +221,7 @@ function MediaDetail() {
       }
 
       // Refresh media 
-      const mediaRes = await fetch(`http://localhost:5000/media/${id}`, {
+      const mediaRes = await fetch(`${API_BASE_URL}/media/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (mediaRes.ok) {
@@ -245,7 +246,7 @@ function MediaDetail() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/ratings/reviews/${reviewId}`, {
+      const res = await fetch(`${API_BASE_URL}/ratings/reviews/${reviewId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -258,7 +259,7 @@ function MediaDetail() {
       }
 
       // Refresh media data
-      const mediaRes = await fetch(`http://localhost:5000/media/${id}`, {
+      const mediaRes = await fetch(`${API_BASE_URL}/media/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (mediaRes.ok) {
@@ -570,7 +571,7 @@ function MediaDetail() {
                 const comment = e.target.comment.value;
 
                 try {
-                  const res = await fetch(`http://localhost:5000/ratings/${id}`, {
+                  const res = await fetch(`${API_BASE_URL}/ratings/${id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rating, comment, userId }),
@@ -585,7 +586,7 @@ function MediaDetail() {
                   // Refetch media details 
                   const token = localStorage.getItem('token');
                   const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-                  fetch(`http://localhost:5000/media/${id}`, { headers })
+                  fetch(`${API_BASE_URL}/media/${id}`, { headers })
                     .then(res => res.json())
                     .then(data => {
                       setMedia(data);

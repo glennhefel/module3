@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Discussion.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function Discussion({ mediaId, isOpen, onClose }) {
   const [discussions, setDiscussions] = useState([]);
@@ -14,7 +15,7 @@ function Discussion({ mediaId, isOpen, onClose }) {
     
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/media/${mediaId}/discussions`);
+      const res = await fetch(`${API_BASE_URL}/media/${mediaId}/discussions`);
       if (res.ok) {
         const data = await res.json();
         setDiscussions(data);
@@ -44,7 +45,7 @@ function Discussion({ mediaId, isOpen, onClose }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`http://localhost:5000/media/${mediaId}/discussions`, {
+      const res = await fetch(`${API_BASE_URL}/media/${mediaId}/discussions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ function Discussion({ mediaId, isOpen, onClose }) {
 
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/media/discussions/${discussionId}`, {
+      const res = await fetch(`${API_BASE_URL}/media/discussions/${discussionId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ function Discussion({ mediaId, isOpen, onClose }) {
 
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/media/discussions/${discussionId}`, {
+      const res = await fetch(`${API_BASE_URL}/media/discussions/${discussionId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

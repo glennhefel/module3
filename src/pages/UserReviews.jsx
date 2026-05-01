@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import NavBar from './navbar';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function safeDecodeToken(token) {
   if (!token) return null;
@@ -33,8 +34,8 @@ export default function UserReviews() {
 
       try {
         const endpoint = isOtherUserProfile
-          ? `http://localhost:5000/users/${id}/reviews`
-          : 'http://localhost:5000/users/me/reviews';
+          ? `${API_BASE_URL}/users/${id}/reviews`
+          : `${API_BASE_URL}/users/me/reviews`;
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         const res = await fetch(endpoint, {
@@ -59,7 +60,7 @@ export default function UserReviews() {
     const fetchProfileUser = async () => {
       if (!isOtherUserProfile) return;
       try {
-        const res = await fetch(`http://localhost:5000/users/${id}`);
+        const res = await fetch(`${API_BASE_URL}/users/${id}`);
         if (!res.ok) return;
         const data = await res.json();
         setProfileUser(data.user || null);

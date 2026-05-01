@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { jwtDecode } from "jwt-decode";
 import NavBar from './navbar';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 export default function AdminRequests() {
   const [requests, setRequests] = useState([]);
@@ -35,7 +36,7 @@ export default function AdminRequests() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/media/requests', {
+      const res = await fetch(`${API_BASE_URL}/media/requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -55,7 +56,7 @@ export default function AdminRequests() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/media/requests/${requestId}/${action}`, {
+      const res = await fetch(`${API_BASE_URL}/media/requests/${requestId}/${action}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

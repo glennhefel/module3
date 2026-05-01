@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import NavBar from './navbar';
 import { getBadgeMeta } from '../constants/achievements';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function safeDecodeToken(token) {
   if (!token) return null;
@@ -33,7 +34,7 @@ export default function UserProfile() {
 
     const fetchUser = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/users/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/users/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -62,7 +63,7 @@ export default function UserProfile() {
     if (!token) return alert('Please log in');
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ username: usernameInput.trim() }),
@@ -92,7 +93,7 @@ export default function UserProfile() {
     if (!token) return alert('Please log in');
     setSaving(true);
     try {
-      const res = await fetch('http://localhost:5000/users/me', {
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ password: newPassword.trim() }),

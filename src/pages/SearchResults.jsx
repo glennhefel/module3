@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import NavBar from './navbar';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function matchesGenre(itemGenre, selectedGenre) {
   return String(itemGenre || '').trim().toLowerCase() === String(selectedGenre || '').trim().toLowerCase();
@@ -15,7 +16,7 @@ export default function SearchResults() {
   const [totalMedia, setTotalMedia] = useState(null);
 
   const checkTotalMedia = () => {
-    fetch('http://localhost:5000/media/')
+    fetch(`${API_BASE_URL}/media/`)
       .then(res => res.json())
       .then(data => {
         
@@ -33,8 +34,8 @@ export default function SearchResults() {
     setLoading(true);
 
     const requestUrl = genre
-      ? `http://localhost:5000/media?genre=${encodeURIComponent(genre)}`
-      : `http://localhost:5000/media/search?q=${encodeURIComponent(query)}`;
+      ? `${API_BASE_URL}/media?genre=${encodeURIComponent(genre)}`
+      : `${API_BASE_URL}/media/search?q=${encodeURIComponent(query)}`;
 
     fetch(requestUrl)
       .then((res) => {

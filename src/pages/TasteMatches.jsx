@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import NavBar from './navbar';
 import './Profile.css';
+import { API_BASE_URL } from '../utils/apiBase';
 
 const DEFAULT_AVATAR = '/logo192.png';
 
@@ -42,7 +43,7 @@ export default function TasteMatches() {
       }
 
       try {
-        const res = await fetch('http://localhost:5000/users/me/taste-matches', {
+        const res = await fetch(`${API_BASE_URL}/users/me/taste-matches`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -66,7 +67,7 @@ export default function TasteMatches() {
       setLoadingChat(true);
       setChatError('');
       try {
-        const res = await fetch(`http://localhost:5000/users/me/dms/${selectedUserId}`, {
+        const res = await fetch(`${API_BASE_URL}/users/me/dms/${selectedUserId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {
@@ -94,7 +95,7 @@ export default function TasteMatches() {
     setSendingMessage(true);
     setChatError('');
     try {
-      const res = await fetch(`http://localhost:5000/users/me/dms/${selectedUserId}`, {
+      const res = await fetch(`${API_BASE_URL}/users/me/dms/${selectedUserId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

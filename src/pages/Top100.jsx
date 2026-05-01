@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Profile.css'; 
 import NavBar from './navbar';
+import { API_BASE_URL } from '../utils/apiBase';
 
 function Top100Page() {
  
@@ -9,7 +10,7 @@ function Top100Page() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/media')
+    fetch(`${API_BASE_URL}/media`)
       .then((res) => {
         if (!res.ok) throw new Error('Fetch failed');
         return res.json();

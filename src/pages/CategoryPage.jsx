@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import './HomePage.css';
 import NavBar from './navbar';
+import { API_BASE_URL } from '../utils/apiBase';
 
 const FALLBACK_POSTER = '/logo192.png';
 const CATEGORY_MAP = {
@@ -25,7 +26,7 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/media')
+    fetch(`${API_BASE_URL}/media`)
       .then((res) => {
         if (!res.ok) throw new Error('Fetch failed');
         return res.json();
