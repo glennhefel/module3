@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
 import '../components/navbar.css';
 import { API_BASE_URL } from '../utils/apiBase';
+import Discussion from '../components/Discussion';
 
 const GENRE_ORDER = [
   'Horror',
