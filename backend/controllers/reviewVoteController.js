@@ -24,7 +24,7 @@ export const voteOnReview = async (req, res) => {
       await ReviewVote.create({ review: reviewId, user: userId, value });
     }
 
-  // 
+  
   const votes = await ReviewVote.find({ review: reviewId });
   const upvotes = votes.filter(v => v.value === 1).length;
   const downvotes = votes.filter(v => v.value === -1).length;
