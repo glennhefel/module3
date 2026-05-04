@@ -185,7 +185,7 @@ function NavBar() {
           </li>
           <li className="nav-item">
             <Link className="nav-link nav-link-professional" to="/watchlist">
-               Watchlist
+               Watchlists
             </Link>
           </li>
           {isAdmin && (
